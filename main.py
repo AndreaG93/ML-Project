@@ -27,6 +27,7 @@ def print_installed_libraries():
     print(f'Installed \'NumPy\' version:      {numpy.__version__}')
     print(f'Installed \'Pandas\' version:      {pandas.__version__}')
 
+
 def split_data(filename):
     train_set_datetime_lower_bound = datetime.datetime(year=2019, month=1, day=1, hour=0, minute=0, second=0,
                                                        tzinfo=pytz.timezone("Etc/GMT-1"))
@@ -113,15 +114,14 @@ def univariate_data(dataset, start_index, end_index, history_size, target_size):
         end_index = len(dataset) - target_size
 
     for i in range(start_index, end_index):
-        indices = range(i-history_size, i)
+        indices = range(i - history_size, i)
         data.append(dataset[indices])
-        labels.append(dataset[i+target_size])
+        labels.append(dataset[i + target_size])
 
     return np.array(data), np.array(labels)
 
 
 def dsadas():
-
     plt.interactive(True)
 
     zip_path = tensorflow.keras.utils.get_file(
@@ -139,14 +139,14 @@ def dsadas():
     uni_data.index = df['Date Time']
     uni_data.head()
 
-    #uni_data.plot(subplots=True)
+    # uni_data.plot(subplots=True)
     print(type(uni_data))
 
     TRAIN_SPLIT = 300000
 
-    #index = uni_data.index
+    # index = uni_data.index
 
-    #print(index)
+    # print(index)
 
     uni_data = uni_data.values
 
@@ -190,30 +190,54 @@ def dsadas():
     plt.show()
 
 
-if __name__ == '__main__':
+def univariate_data(dataset, start_index, end_index, history_size, target_size):
+    data = []
+    labels = []
+    start_index = start_index + history_size
+    if end_index is None:
+        end_index = len(dataset) - target_size
+    for i in range(start_index, end_index):
+        indices = range(i-history_size, i)
+        data.append(dataset[indices])
+        labels.append(dataset[i+target_size])
+    return np.array(data), np.array(labels)
 
+
+if __name__ == '__main__':
     plt.interactive(True)
 
-    #print_installed_libraries()
+    # print_installed_libraries()
 
-    dataset = DatasetForClassification(['dishwasher'], debug=True)
+    dataset = DatasetForClassification(['dishwasher','fridge'], debug=True)
 
-    #classificationModel = ClassificationNetwork(3)
+    standrard = dataset.get_standardize_dataset(400000, debug=True)
 
-    #x_input = numpy.array([1, 2, 3, 4, 5])
-    #y_input = numpy.array([10])
+    univariate_past_history = 20
+    univariate_future_target = 0
 
-    #history = classificationModel._model.fit(x_input, y_input, epochs=10, batch_size=32)
+    print(standrard.shape)
+
+    x_train_uni, y_train_uni = univariate_data(standrard, 0, 300000,
+                                               univariate_past_history,
+                                               univariate_future_target)
+
+    if True:
+        print('Input train-data shape:      {}'.format(x_train_uni.shape))
+        print('Input validation-data shape: {}'.format(y_train_uni.shape))
 
 
-  #  numpy_array = dataset.get_numpy_array()
-  #  x, y = retrieve_sets(numpy_array)
 
-   # print(x)
-  #  print(y)
+    simple_model = tensorflow.keras.models.Sequential([
+        tensorflow.keras.layers.Dense(16, input_shape=x_train_uni.shape),
+        tensorflow.keras.layers.Dense(2)
+    ])
+
+    simple_model.compile(optimizer='adam', loss='mae')
+    simple_model.summary()
+
+    # %%
+
+    h = simple_model.fit(x_train_uni, y_train_uni, epochs=10, batch_size=256)
 
 
 
-
-    # print(train_images.shape)
-    # print(train_labels.shape)

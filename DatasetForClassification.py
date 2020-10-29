@@ -24,23 +24,42 @@ class DatasetForClassification(object):
             self._dataset = self._dataset.join(appliance_dataset)
 
         if debug:
-            self.debug_plot()
+            self.debug_plot(self._dataset.values)
 
-    def get_numpy_array(self):
-        return self._dataset.to_numpy()
+    def get_standardize_dataset(self, upper_bound, debug=False):
+        output = self._dataset.values
 
-    def debug_plot(self):
+        for appliance in range(output.shape[1]):
+            mean = output[:upper_bound, appliance].mean()
+            std = output[:upper_bound, appliance].std()
+            output[:, appliance] = (output[:, appliance] - mean) / std
+
+        if debug:
+            self.debug_plot(self._dataset.values)
+
+        return output
+
+    def debug_plot(self, values):
 
         plot.figure()
 
-        values = self._dataset.values
-
         subplots_number = len(self._appliances_names) + 1
+
+        max_value = 0
+
+        for subplot_index in range(0, subplots_number):
+
+            values_to_visualize = values[:, subplot_index]
+            current_max_value = values_to_visualize.max()
+
+            if current_max_value > max_value:
+                max_value = current_max_value
 
         for subplot_index in range(0, subplots_number):
 
             plot.subplot(subplots_number, 1, subplot_index + 1)
+            plot.ylim(0, max_value)
             plot.plot(values[:, subplot_index])
-            plot.title(self._dataset.columns[subplot_index], y=0.5, loc='right')
+            plot.title(self._dataset.columns[subplot_index], loc='right')
 
         plot.show()
