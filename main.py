@@ -16,6 +16,10 @@ import numpy as np
 import os
 import pandas as pd
 
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv1D, Dense, LSTM, Attention, RepeatVector, TimeDistributed, Bidirectional, Flatten, Dropout, \
+    Reshape
+
 # 2019-01-31 19:35:34+01:00
 from ClassificationNetwork import ClassificationNetwork
 from DatasetForClassification import DatasetForClassification
@@ -105,105 +109,7 @@ def build_disaggregation_mode(train_set, validation_set):
     print('Test accuracy:', test_scores[1])
 
 
-def univariate_data(dataset, start_index, end_index, history_size, target_size):
-    data = []
-    labels = []
-    start_index = start_index + history_size
-
-    if end_index is None:
-        end_index = len(dataset) - target_size
-
-    for i in range(start_index, end_index):
-        indices = range(i - history_size, i)
-        data.append(dataset[indices])
-        labels.append(dataset[i + target_size])
-
-    return np.array(data), np.array(labels)
-
-
-def dsadas():
-    plt.interactive(True)
-
-    zip_path = tensorflow.keras.utils.get_file(
-        origin='https://storage.googleapis.com/tensorflow/tf-keras-datasets/jena_climate_2009_2016.csv.zip',
-        fname='jena_climate_2009_2016.csv.zip',
-        extract=True)
-    csv_path, _ = os.path.splitext(zip_path)
-
-    df = pd.read_csv(csv_path)
-
-    print(df)
-    print(df.shape)
-
-    uni_data = df['T (degC)']
-    uni_data.index = df['Date Time']
-    uni_data.head()
-
-    # uni_data.plot(subplots=True)
-    print(type(uni_data))
-
-    TRAIN_SPLIT = 300000
-
-    # index = uni_data.index
-
-    # print(index)
-
-    uni_data = uni_data.values
-
-    uni_train_mean = uni_data[:TRAIN_SPLIT].mean()
-    uni_train_std = uni_data[:TRAIN_SPLIT].std()
-    uni_data = (uni_data - uni_train_mean) / uni_train_std
-
-    print(uni_data)
-    print(uni_data.shape)
-    print(type(uni_data))
-
-    univariate_past_history = 20
-    univariate_future_target = 0
-
-    x_train_uni, y_train_uni = univariate_data(uni_data, 0, TRAIN_SPLIT,
-                                               univariate_past_history,
-                                               univariate_future_target)
-
-    x_val_uni, y_val_uni = univariate_data(uni_data, TRAIN_SPLIT, None,
-                                           univariate_past_history,
-                                           univariate_future_target)
-
-    simple_model = tensorflow.keras.models.Sequential([
-        tensorflow.keras.layers.Dense(32, input_shape=x_train_uni.shape[-1:]),
-        tensorflow.keras.layers.Dense(1)
-    ])
-
-    simple_model.compile(optimizer='adam', loss='mae')
-
-    print(simple_model.summary())
-
-    h = simple_model.fit(x_train_uni, y_train_uni, epochs=10, batch_size=256)
-    print(type(h))
-
-    pred_y = simple_model.predict(x_val_uni)
-
-    # %%
-    plt.interactive(True)
-    plt.plot(y_val_uni[0:100])
-    plt.plot(pred_y[0:100])
-    plt.show()
-
-
-def univariate_data(dataset, start_index, end_index, history_size, target_size):
-    data = []
-    labels = []
-    start_index = start_index + history_size
-    if end_index is None:
-        end_index = len(dataset) - target_size
-    for i in range(start_index, end_index):
-        indices = range(i - history_size, i)
-        data.append(dataset[indices])
-        labels.append(dataset[i + target_size])
-    return np.array(data), np.array(labels)
-
-
-def get_train_ds(dataset_values, train_data_size, appliance_target_index, start_from_index=0):
+def get_train_prova(dataset_values, train_data_size, start_from_index=0):
     data = []
     labels = []
 
@@ -211,7 +117,7 @@ def get_train_ds(dataset_values, train_data_size, appliance_target_index, start_
         new_data = [dataset_values[index][0]]
 
         data.append(new_data)
-        labels.append(dataset_values[index][appliance_target_index])
+        labels.append(dataset_values[index][1:])
 
     return np.array(data), np.array(labels)
 
@@ -219,25 +125,56 @@ def get_train_ds(dataset_values, train_data_size, appliance_target_index, start_
 def dsdsad():
     x = numpy.asarray([[1, 2, 5], [3, 4, 5], [3, 5, 5], [3, 5, 5], [3, 5, 5], [3, 23, 4]])
 
-    y = numpy.asarray([3, 4, 5])
-
-    r, f = get_train_ds(x, 3, 2)
-
-    simple_model = tensorflow.keras.models.Sequential([
-        tensorflow.keras.layers.Dense(16, input_shape=(r.shape[1],)),
-        tensorflow.keras.layers.Dense(1)
-    ])
-
-    simple_model.compile(optimizer='adam', loss='mae')
-    simple_model.summary()
+    r, f = get_train_prova(x, 3)
 
     print(r.shape)
     print(f.shape)
 
-    h = simple_model.fit(r, f, epochs=10)
+    model = Sequential()
+
+    r = r.reshape((r.shape[0], r.shape[1], 1))
+    f = f.reshape((f.shape[0], f.shape[1], 1))
+
+    print(r.shape)
+    print(f.shape)
+
+
+
+    # 1D Conv
+    model.add(Conv1D(16, 4, strides=1, activation="relu", padding='same', input_shape=(1, 1)))
+    model.add(Conv1D(16, 4, strides=1, activation="relu", padding='same'))
+    model.add(Conv1D(16, 4, strides=1, activation="relu", padding='same'))
+    model.add(Conv1D(16, 4, strides=1, activation="relu", padding='same'))
+
+    model.add(Bidirectional(LSTM(128, return_sequences=True, stateful=False, activation="tanh"), merge_mode='concat'))
+
+    model.add(Dense(128, activation='relu'))
+    model.add(Dense(1, activation='linear'))
+
+    model.compile(optimizer='adam', loss='mae')
+    model.summary()
+
+    print(r.shape)
+    print(f.shape)
+
+    h = model.fit(r, f, epochs=10)
+
+
+def plot_results(predicted_data, real_data):
+    plt.figure()
+    subplots_number = predicted_data.shape[-1]
+
+    for subplot_index in range(0, subplots_number):
+        plt.subplot(subplots_number, 1, subplot_index + 1)
+        plt.plot(predicted_data[:, subplot_index])
+        plt.plot(real_data[:, 1])
+
+    plt.show()
 
 
 if __name__ == '__main__':
+
+
     plt.interactive(True)
 
     dataset = DatasetForClassification(['dishwasher', 'fridge'], debug=True)
@@ -246,28 +183,49 @@ if __name__ == '__main__':
 
     fd = dataset._dataset.values
 
-    data, labels = get_train_ds(fd, 400, 2)
+    data, labels = get_train_prova(fd, 40000, 2)
 
-    simple_model = tensorflow.keras.models.Sequential([
-        tensorflow.keras.layers.Dense(16, input_shape=(data.shape[1],)),
-        tensorflow.keras.layers.Dense(1)
-    ])
+    model = Sequential()
 
-    simple_model.compile(optimizer='adam', loss='mae')
-    simple_model.summary()
+    # 1D Conv
+
+    data = data.reshape((data.shape[0], data.shape[1], 1))
+    labels = labels.reshape((labels.shape[0], labels.shape[1], 1))
 
     print(data.shape)
     print(labels.shape)
 
-    h = simple_model.fit(data, labels, epochs=10)
+    # 1D Conv
+    model.add(Conv1D(16, 4, strides=1, activation="relu", padding='same', input_shape=(1, 1)))
+    model.add(Conv1D(16, 4, strides=1, activation="relu", padding='same'))
+    model.add(Conv1D(16, 4, strides=1, activation="relu", padding='same'))
+    model.add(Conv1D(16, 4, strides=1, activation="relu", padding='same'))
 
-    data, labels = get_train_ds(fd, 400, 2, start_from_index=400)
+    model.add(Bidirectional(LSTM(128, return_sequences=True, stateful=False, activation="tanh"), merge_mode='concat'))
 
-    pred_y = simple_model.predict(data)
+    model.add(Dense(128, activation='relu'))
+    model.add(Dense(2, activation='linear'))
 
-    plt.plot(pred_y)
-    plt.plot(labels)
-    plt.show()
+    model.compile(optimizer='adam', loss='mae')
+    model.summary()
+
+
+    h = model.fit(data, labels, epochs=10)
+
+    data, labels = get_train_prova(fd, 40000, start_from_index=400)
+
+    data = data.reshape((data.shape[0], data.shape[1], 1))
+
+    pred_y = model.predict(data)
+    print(pred_y)
+    print(pred_y.shape)
+
+    dd = []
+    for elem in pred_y:
+        dd.append([elem[0][1], elem[0][0]])
+
+    dd = numpy.asarray(dd)
+    plot_results(dd, labels)
 
 """
     standrard = dataset.get_standardize_dataset(400000, debug=True)
