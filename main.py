@@ -197,19 +197,79 @@ def univariate_data(dataset, start_index, end_index, history_size, target_size):
     if end_index is None:
         end_index = len(dataset) - target_size
     for i in range(start_index, end_index):
-        indices = range(i-history_size, i)
+        indices = range(i - history_size, i)
         data.append(dataset[indices])
-        labels.append(dataset[i+target_size])
+        labels.append(dataset[i + target_size])
     return np.array(data), np.array(labels)
+
+
+def get_train_ds(dataset_values, train_data_size, appliance_target_index, start_from_index=0):
+    data = []
+    labels = []
+
+    for index in range(start_from_index, start_from_index + train_data_size):
+        new_data = [dataset_values[index][0]]
+
+        data.append(new_data)
+        labels.append(dataset_values[index][appliance_target_index])
+
+    return np.array(data), np.array(labels)
+
+
+def dsdsad():
+    x = numpy.asarray([[1, 2, 5], [3, 4, 5], [3, 5, 5], [3, 5, 5], [3, 5, 5], [3, 23, 4]])
+
+    y = numpy.asarray([3, 4, 5])
+
+    r, f = get_train_ds(x, 3, 2)
+
+    simple_model = tensorflow.keras.models.Sequential([
+        tensorflow.keras.layers.Dense(16, input_shape=(r.shape[1],)),
+        tensorflow.keras.layers.Dense(1)
+    ])
+
+    simple_model.compile(optimizer='adam', loss='mae')
+    simple_model.summary()
+
+    print(r.shape)
+    print(f.shape)
+
+    h = simple_model.fit(r, f, epochs=10)
 
 
 if __name__ == '__main__':
     plt.interactive(True)
 
-    # print_installed_libraries()
+    dataset = DatasetForClassification(['dishwasher', 'fridge'], debug=True)
 
-    dataset = DatasetForClassification(['dishwasher','fridge'], debug=True)
+    TRAIN_SPLIT = 400000
 
+    fd = dataset._dataset.values
+
+    data, labels = get_train_ds(fd, 400, 2)
+
+    simple_model = tensorflow.keras.models.Sequential([
+        tensorflow.keras.layers.Dense(16, input_shape=(data.shape[1],)),
+        tensorflow.keras.layers.Dense(1)
+    ])
+
+    simple_model.compile(optimizer='adam', loss='mae')
+    simple_model.summary()
+
+    print(data.shape)
+    print(labels.shape)
+
+    h = simple_model.fit(data, labels, epochs=10)
+
+    data, labels = get_train_ds(fd, 400, 2, start_from_index=400)
+
+    pred_y = simple_model.predict(data)
+
+    plt.plot(pred_y)
+    plt.plot(labels)
+    plt.show()
+
+"""
     standrard = dataset.get_standardize_dataset(400000, debug=True)
 
     univariate_past_history = 20
@@ -225,19 +285,4 @@ if __name__ == '__main__':
         print('Input train-data shape:      {}'.format(x_train_uni.shape))
         print('Input validation-data shape: {}'.format(y_train_uni.shape))
 
-
-
-    simple_model = tensorflow.keras.models.Sequential([
-        tensorflow.keras.layers.Dense(16, input_shape=x_train_uni.shape),
-        tensorflow.keras.layers.Dense(2)
-    ])
-
-    simple_model.compile(optimizer='adam', loss='mae')
-    simple_model.summary()
-
-    # %%
-
-    h = simple_model.fit(x_train_uni, y_train_uni, epochs=10, batch_size=256)
-
-
-
+"""
