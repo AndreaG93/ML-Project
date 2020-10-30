@@ -1,49 +1,67 @@
 import tensorflow
 import tensorflow.keras as keras
-from tensorflow.keras.layers import Input
-from tensorflow.keras.models import Model
 import numpy
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plot
 import pandas
-import datetime
-import pytz
 
-from tensorflow.keras.layers import Dense
-
-from network.ClassificationNetwork import ClassificationNetwork
-from network.RegressionNetwork import RegressionNetwork
-from Dataset import Dataset
+from dataset.TrainingDataset import EnergyConsumptionRegistry
+from network.NeuralNetwork import NeuralNetwork
 
 
 def print_installed_libraries():
     print(f'Installed \'TensorFlow\' version: {tensorflow.__version__}')
     print(f'Installed \'Keras\' version:      {keras.__version__}')
     print(f'Installed \'NumPy\' version:      {numpy.__version__}')
-    print(f'Installed \'Pandas\' version:      {pandas.__version__}')
+    print(f'Installed \'Pandas\' version:     {pandas.__version__}')
 
 
-def plot_results(predicted_data, real_data):
-    plt.figure()
-    subplots_number = predicted_data.shape[-1]
+def plot_prediction_results(predicted_data, real_data):
+    plot.plot(predicted_data)
+    plot.plot(real_data)
 
-    for subplot_index in range(0, subplots_number):
-        plt.subplot(subplots_number, 1, subplot_index + 1)
-        plt.plot(predicted_data[:, subplot_index])
-        plt.plot(real_data[:, 1])
+    plot.xlabel('timestamp')
+    plot.ylabel('power')
 
-    plt.show()
+    plot.show()
 
 
-def show_shape(input_data, output_label): # can make yours to take inputs; this'll use local variable values
-    print("Expected ==(num_samples, timestamps, channels)==")
+def show_shape(input_data, output_label):  # can make yours to take inputs; this'll use local variable values
+    print("Expected ==(num_samples, timestamps, data)==")
     print("Input Data   -> {}".format(input_data.shape))
     print("Output Label -> {}".format(output_label.shape))
 
+
 if __name__ == '__main__':
+    appliances_name = ['dishwasher', 'fridge']
 
-    plt.interactive(True)
+    training_dataset_registry = EnergyConsumptionRegistry(appliances_name)
+    application_neural_network = NeuralNetwork(appliances_name)
 
-    dataset = Dataset(['dishwasher', 'fridge'], debug=True)
+    for appliance_name in appliances_name:
+        fold = 400000
+
+        data_rgs, labels_rgs = training_dataset_registry.get_rgs_nn_inputs(appliance_name,
+                                                                           fold,
+                                                                           0)
+
+        data_cls, labels_cls = training_dataset_registry.get_cls_nn_inputs(appliance_name,
+                                                                           fold,
+                                                                           0)
+
+        application_neural_network.fit(appliance_name, data_rgs, labels_rgs, data_cls, labels_cls)
+
+        data, labels = training_dataset_registry.get_rgs_nn_inputs(appliance_name,
+                                                               fold,
+                                                               fold)
+
+        predicted_data = application_neural_network.prediction(appliance_name, data)
+
+        plot_prediction_results(predicted_data, labels)
+
+
+
+""" 
+    
 
     classificationNetwork = ClassificationNetwork()
     regressionNetwork = RegressionNetwork()
@@ -54,7 +72,7 @@ if __name__ == '__main__':
 
     show_shape(data, labels)
 
-    labels = labels.reshape((labels.shape[0], labels.shape[1], 1))
+    # labels = labels.reshape((labels.shape[0], labels.shape[1], 1))
 
     show_shape(data, labels)
     print(data)
@@ -62,15 +80,13 @@ if __name__ == '__main__':
 
     h = regressionNetwork._model.fit(data, labels, epochs=10)
 
-
     # 1D Conv
 
-    #data = data.reshape((data.shape[0], data.shape[1], 1))
-    #labels = labels.reshape((labels.shape[0], labels.shape[1], 1))
+    # data = data.reshape((data.shape[0], data.shape[1], 1))
+    # labels = labels.reshape((labels.shape[0], labels.shape[1], 1))
 
-    #print(data.shape)
-    #print(labels.shape)
-
+    # print(data.shape)
+    # print(labels.shape)
 
     data, labels = dataset.get_network_input_for_regression(fold, fold)
 
@@ -84,7 +100,7 @@ if __name__ == '__main__':
 
     dd = numpy.asarray(dd)
     plot_results(dd, labels)
-
+"""
 """
     standrard = dataset.get_standardize_dataset(400000, debug=True)
 
