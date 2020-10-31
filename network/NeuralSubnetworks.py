@@ -2,8 +2,8 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv1D, Dense, Bidirectional, LSTM
 
 
-def get_classification_subnetwork(appliance_name):
-    output = Sequential(name="ClassificationSubNetwork{}".format(appliance_name))
+def get_classification_subnetwork():
+    output = Sequential()
 
     output.add(
         Conv1D(filters=30, kernel_size=10, strides=1, activation="relu", padding='same', input_shape=(1, 1)))
@@ -22,8 +22,8 @@ def get_classification_subnetwork(appliance_name):
     return output
 
 
-def get_regression_subnetwork(appliance_name):
-    output = Sequential(name="RegressionSubNetwork{}".format(appliance_name))
+def get_regression_subnetwork():
+    output = Sequential()
 
     k = 4
     f = 16

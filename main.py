@@ -1,44 +1,78 @@
-import tensorflow
-import tensorflow.keras as keras
-import numpy
-import matplotlib.pyplot as plot
-import pandas
+from DatasetRegistry import DatasetRegistry
+from network.NeuralNetworks import FridgeNeuralNetwork
+from network.NeuralNetworks import DishwasherNeuralNetwork
+from utility.AccuracyMetrics import AccuracyMetrics
+from utility.Plot import Plot
 
-from dataset.TrainingDataset import EnergyConsumptionRegistry
-from network.NeuralNetwork import NeuralNetwork
-
-
-def print_installed_libraries():
-    print(f'Installed \'TensorFlow\' version: {tensorflow.__version__}')
-    print(f'Installed \'Keras\' version:      {keras.__version__}')
-    print(f'Installed \'NumPy\' version:      {numpy.__version__}')
-    print(f'Installed \'Pandas\' version:     {pandas.__version__}')
+import utility.Common as common
 
 
-def plot_prediction_results(predicted_data, real_data):
-    plot.plot(predicted_data)
-    plot.plot(real_data)
+def show_results(appliance_name, real_data, predicted_data):
 
-    plot.xlabel('timestamp')
-    plot.ylabel('power')
+    results_plot = Plot(appliance_name)
+    results_plot.insert("Predicted Data", predicted_data)
+    results_plot.insert("Real Data", real_data)
 
-    plot.show()
+    results_plot.show()
+
+    accuracy_metrics = AccuracyMetrics(real_data, predicted_data)
+    f1_score = accuracy_metrics.get_f1()
+
+    print(f1_score)
 
 
-def show_shape(input_data, output_label):  # can make yours to take inputs; this'll use local variable values
-    print("Expected ==(num_samples, timestamps, data)==")
-    print("Input Data   -> {}".format(input_data.shape))
-    print("Output Label -> {}".format(output_label.shape))
+def train_dishwasher_neural_network(train_dataset_registry):
+    neural_network = DishwasherNeuralNetwork()
+
+    fold = 40000
+
+    data = train_dataset_registry.get_values_range('Aggregate Power',
+                                                   fold,
+                                                   0)
+
+    labels = train_dataset_registry.get_values_range('Dishwasher Power',
+                                                     fold,
+                                                     0)
+
+    neural_network.fit(data, labels)
+
+    data_to_predict = train_dataset_registry.get_values_range('Aggregate Power',
+                                                              fold,
+                                                              fold)
+
+    real_data = train_dataset_registry.get_values_range('Dishwasher Power',
+                                                        fold,
+                                                        fold)
+
+    predicted_data = neural_network.predict(data_to_predict)
+
+    common.show_shape(real_data, real_data)
+
+    x = []
+    for value in real_data:
+        x.append(value[0])
+    real_data = x
+
+    show_results('Dishwasher', real_data, predicted_data)
 
 
 if __name__ == '__main__':
-    appliances_name = ['dishwasher', 'fridge']
+    train_dataset_registry = DatasetRegistry("Train Datasets")
 
+    train_dataset_registry.insert('Aggregate Power', './datasets/main_train.csv')
+    train_dataset_registry.insert('Dishwasher Power', './datasets/dishwasher_train.csv')
+    train_dataset_registry.insert('Fridge Power', './datasets/fridge_train.csv')
+
+    train_dataset_registry.plot()
+
+    train_dishwasher_neural_network(train_dataset_registry)
+
+"""
     training_dataset_registry = EnergyConsumptionRegistry(appliances_name)
     application_neural_network = NeuralNetwork(appliances_name)
 
     for appliance_name in appliances_name:
-        fold = 400000
+        fold = 40000
 
         data_rgs, labels_rgs = training_dataset_registry.get_rgs_nn_inputs(appliance_name,
                                                                            fold,
@@ -56,10 +90,19 @@ if __name__ == '__main__':
 
         predicted_data = application_neural_network.prediction(appliance_name, data)
 
-        plot_prediction_results(predicted_data, labels)
+        results_plot = Plot(appliance_name)
+        results_plot.insert("Predicted Data", predicted_data)
+        results_plot.insert("Real Data", labels)
+
+        results_plot.show()
+
+        accuracy_metrics = AccuracyMetrics(labels, predicted_data)
+        f1_score = accuracy_metrics.get_f1()
+
+        print(f1_score)
 
 
-
+"""
 """ 
     
 
@@ -68,7 +111,7 @@ if __name__ == '__main__':
 
     fold = 400000
 
-    data, labels = dataset.get_network_input_for_regression(fold, 0)
+    data, labels = datasets.get_network_input_for_regression(fold, 0)
 
     show_shape(data, labels)
 
@@ -88,7 +131,7 @@ if __name__ == '__main__':
     # print(data.shape)
     # print(labels.shape)
 
-    data, labels = dataset.get_network_input_for_regression(fold, fold)
+    data, labels = datasets.get_network_input_for_regression(fold, fold)
 
     pred_y = regressionNetwork._model.predict(data)
     print(pred_y)
@@ -102,7 +145,7 @@ if __name__ == '__main__':
     plot_results(dd, labels)
 """
 """
-    standrard = dataset.get_standardize_dataset(400000, debug=True)
+    standrard = datasets.get_standardize_dataset(400000, debug=True)
 
     univariate_past_history = 20
     univariate_future_target = 0
