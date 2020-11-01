@@ -56,6 +56,7 @@ def perform_training(registry, appliance_name, appliance_neural_network):
 
         show_results(appliance_name, real_data, predicted_data)
 
+
 if __name__ == '__main__':
     dataset_registry = DatasetRegistry("Train Datasets")
 
