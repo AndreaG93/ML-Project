@@ -31,16 +31,13 @@ class DatasetRegistry(object):
 
         return self._size
 
-    def get_values_range(self, dataset_name, output_size, offset):
+    def get_values_range(self, dataset_name, first_value, last_value):
 
         output = []
 
         values = self._registry[dataset_name].get_values()
 
-        if output_size is None:
-            output_size = len(values)
-
-        for index in range(offset, offset + output_size):
+        for index in range(first_value, last_value):
             new_data = values[index]
             output.append([new_data])
 
