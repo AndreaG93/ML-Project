@@ -16,11 +16,11 @@ class Test(unittest.TestCase):
 
     def test_feature_scaling(self):
         values = numpy.asarray([60, 40, 40, 50, 52])
-        values = FeatureScaling.get_standardized_data(values)
+        values = FeatureScaling.perform_feature_scaling(values, 'normalization')
         print(values)
 
         values = numpy.asarray([3.0, 3.0, 4.0, 4.5, 4.2])
-        values = FeatureScaling.get_standardized_data(values)
+        values = FeatureScaling.perform_feature_scaling(values, 'standardization')
         print(values)
 
 
